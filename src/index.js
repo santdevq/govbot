@@ -12,7 +12,7 @@ const client = new Client({
 
 // Configurações fixas direto no script
 const CONFIG_BOT = {
-  ID_CARGO_ALVO: "1507539278346059836", // ID do cargo que os membros vão receber[cite: 1]
+  ID_CARGO_ALVO: "1507539278346059836", // ID do cargo que os membros vão receber
   PREFIXO_NOME: "Conscrito. ",           // Formato: Cidadão. Nick
 };
 
@@ -48,14 +48,18 @@ client.on('interactionCreate', async interaction => {
         try {
           let modificou = false;
 
-          // Atribui o cargo caso o membro não o possua
-          if (!member.roles.cache.has(cargoParaAtribuir.id)) {
-            await member.roles.add(cargoParaAtribuir);
+          // 🔥 ALTERAÇÃO AQUI: Verifica se o usuário tem OUTROS cargos além do alvo ou se não tem o alvo.
+          // O Discord conta o cargo "@everyone" (que tem o mesmo ID do servidor), por isso filtramos ele.
+          const cargosAtuais = member.roles.cache.filter(role => role.id !== interaction.guild.id);
+          const temApenasOCargoAlvo = cargosAtuais.size === 1 && cargosAtuais.has(cargoParaAtribuir.id);
+
+          if (!temApenasOCargoAlvo) {
+            // Remove TODOS os cargos e define APENAS o cargo alvo de uma vez só
+            await member.roles.set([cargoParaAtribuir]);
             modificou = true;
           }
 
-          // CORREÇÃO AQUI: Pega sempre o nome de usuário real da conta (ex: joao123) 
-          // ou o Nome Global (Ex: João) para evitar acumular "Cidadão. Cidadão."
+          // Pega o nome de usuário real da conta
           const nomeRealDoUsuario = member.user.globalName || member.user.username;
           const novoNomeCorreto = `${CONFIG_BOT.PREFIXO_NOME}${nomeRealDoUsuario}`;
 
@@ -78,7 +82,7 @@ client.on('interactionCreate', async interaction => {
         .setTitle('🛠️ Revisão de Membros Concluída')
         .setDescription('O processo de formatação automatizada de quem já estava no servidor foi terminado.')
         .addFields(
-          { name: '✅ Membros Atualizados', value: `${alteradosContador}`, inline: true },
+          { name: '✅ Membros Atualizados/Limpos', value: `${alteradosContador}`, inline: true },
           { name: '⚠️ Perfis Ignorados (Hierarquia Alta)', value: `${errosContador}`, inline: true }
         )
         .setTimestamp()
